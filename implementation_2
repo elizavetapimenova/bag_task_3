@@ -1,0 +1,77 @@
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <algorithm>
+#include <iomanip>
+
+using namespace std;
+
+struct Product {
+    double price;
+    double mass;
+    double efficiency;
+
+    Product(double p, double m) : price(p), mass(m), efficiency(p / m) {}
+};
+
+void calculateEfficiencies(vector<Product>& products, int startIdx, int endIdx) {
+    for (int i = startIdx; i < endIdx; ++i) {
+        products[i].efficiency = products[i].price / products[i].mass;
+    }
+}
+
+double maximizeValue(double maxCapacity, vector<Product>& products) {
+    int count = products.size();
+    int midpoint = count / 2;
+    thread thread1(calculateEfficiencies, ref(products), 0, midpoint);
+    thread thread2(calculateEfficiencies, ref(products), midpoint, count);
+    
+    thread1.join();
+    thread2.join();
+
+    sort(products.begin(), products.end(), [](const Product& a, const Product& b) {
+        return a.efficiency > b.efficiency;
+    });
+
+    double totalPrice = 0.0;
+
+    for (const auto& product : products) {
+        if (maxCapacity <= 0) {
+            totalPrice += 0; 
+        } else if (product.mass <= maxCapacity) {
+            maxCapacity -= product.mass;
+            totalPrice += product.price;
+        } else {
+            totalPrice += product.efficiency * maxCapacity;
+            maxCapacity = 0; 
+        }
+    }
+
+    return totalPrice;
+}
+
+int main() {
+    int itemCount;
+    double knapsackCapacity;
+
+    cout << "Количество объектов: ";
+    cin >> itemCount;
+
+    cout << "Вместимость рюкзака: ";
+    cin >> knapsackCapacity;
+
+    vector<Product> products;
+    cout << "Введите стоимость и вес объектов:\n";
+    for (int i = 0; i < itemCount; ++i) {
+        double p, m;
+        cin >> p >> m;
+        products.emplace_back(p, m);
+    }
+
+    double maxValue = maximizeValue(knapsackCapacity, products);
+
+    cout << fixed << setprecision(2);
+    cout << "Максимальная стоимость: " << maxValue << endl;
+
+    return 0;
+}
